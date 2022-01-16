@@ -1,0 +1,7 @@
+cs43l22.c:31:13:write_register	16	static
+cs43l22.c:39:13:read_register	24	static
+cs43l22.c:48:6:CS43_Init	16	static
+cs43l22.c:116:6:CS43_Enable_RightLeft	8	static
+cs43l22.c:145:6:CS43_SetVolume	16	static
+cs43l22.c:162:6:CS43_Start	16	static
+cs43l22.c:186:6:CS43_Stop	8	static
