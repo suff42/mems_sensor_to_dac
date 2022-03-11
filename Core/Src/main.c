@@ -45,8 +45,10 @@ CRC_HandleTypeDef hcrc;
 
 I2C_HandleTypeDef hi2c1;
 
+I2S_HandleTypeDef hi2s1;
 I2S_HandleTypeDef hi2s2;
 I2S_HandleTypeDef hi2s3;
+DMA_HandleTypeDef hdma_spi1_rx;
 DMA_HandleTypeDef hdma_spi2_rx;
 DMA_HandleTypeDef hdma_spi3_tx;
 
@@ -62,6 +64,7 @@ static void MX_I2S2_Init(void);
 static void MX_CRC_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_I2S3_Init(void);
+static void MX_I2S1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -71,6 +74,7 @@ static void MX_I2S3_Init(void);
 
 uint16_t txBuf[128];
 uint16_t pdmRxBuf[128];
+uint16_t rxBuf[128];		// i2s input
 uint16_t MidBuffer[16];
 uint8_t txstate = 0;
 uint8_t rxstate = 0;
@@ -78,7 +82,7 @@ uint8_t rxstate = 0;
 uint16_t fifobuf[256];
 uint8_t fifo_w_ptr = 0;
 uint8_t fifo_r_ptr = 0;
-uint8_t fifo_read_enabled = 0;
+uint8_t fifo_read_enabled = 1;
 
 void FifoWrite(uint16_t data) {
 	fifobuf[fifo_w_ptr] = data;
@@ -125,13 +129,15 @@ int main(void)
   MX_I2C1_Init();
   MX_I2S3_Init();
   MX_PDM2PCM_Init();
+  MX_I2S1_Init();
   /* USER CODE BEGIN 2 */
 	CS43_Init(hi2c1, MODE_I2S);
-	CS43_SetVolume(60); //0 - 100,, 40
+	CS43_SetVolume(40); //0 - 100,, 40
 	CS43_Enable_RightLeft(CS43_RIGHT_LEFT);
 	CS43_Start();
 	HAL_I2S_Transmit_DMA(&hi2s3, &txBuf[0], 64);
 	HAL_I2S_Receive_DMA(&hi2s2, &pdmRxBuf[0], 64);
+	HAL_I2S_Receive_DMA(&hi2s1, &rxBuf[0], 64);
 
   /* USER CODE END 2 */
 
@@ -146,15 +152,13 @@ int main(void)
 //	  PDM_Filter(&pdmRxBuf[0],&txBuf[0], &PDM1_filter_handler);
 		//HAL_Delay(500);
 //	  HAL_I2S_Transmit_DMA(&hi2s3, &txBuf[0],128);
+
 		if (rxstate == 1) {
 			PDM_Filter(&pdmRxBuf[0], &MidBuffer[0], &PDM1_filter_handler);
 			for (int i = 0; i < 16; i++) {
 				FifoWrite(MidBuffer[i]);
 			}
-			if (fifo_w_ptr - fifo_r_ptr > 128)
-				fifo_read_enabled = 1;
 			rxstate = 0;
-
 		}
 
 		if (rxstate == 2) {
@@ -163,8 +167,21 @@ int main(void)
 				FifoWrite(MidBuffer[i]);
 			}
 			rxstate = 0;
-
 		}
+
+//		if (rxstate == 3) {
+//			for (int i = 0; i < 64; i++) {
+//				FifoWrite(rxBuf[i]);
+//			}
+//			rxstate = 0;
+//		}
+
+//		if (rxstate == 4) {
+//			for (int i = 64; i < 128; i++) {
+//				FifoWrite(rxBuf[i]);
+//			}
+//			rxstate = 0;
+//		}
 
 		if (txstate == 1) {
 			if (fifo_read_enabled == 1) {
@@ -306,6 +323,40 @@ static void MX_I2C1_Init(void)
 }
 
 /**
+  * @brief I2S1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2S1_Init(void)
+{
+
+  /* USER CODE BEGIN I2S1_Init 0 */
+
+  /* USER CODE END I2S1_Init 0 */
+
+  /* USER CODE BEGIN I2S1_Init 1 */
+
+  /* USER CODE END I2S1_Init 1 */
+  hi2s1.Instance = SPI1;
+  hi2s1.Init.Mode = I2S_MODE_SLAVE_RX;
+  hi2s1.Init.Standard = I2S_STANDARD_PHILIPS;
+  hi2s1.Init.DataFormat = I2S_DATAFORMAT_16B_EXTENDED;
+  hi2s1.Init.MCLKOutput = I2S_MCLKOUTPUT_DISABLE;
+  hi2s1.Init.AudioFreq = I2S_AUDIOFREQ_48K;
+  hi2s1.Init.CPOL = I2S_CPOL_LOW;
+  hi2s1.Init.ClockSource = I2S_CLOCK_PLL;
+  hi2s1.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_DISABLE;
+  if (HAL_I2S_Init(&hi2s1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2S1_Init 2 */
+
+  /* USER CODE END I2S1_Init 2 */
+
+}
+
+/**
   * @brief I2S2 Initialization Function
   * @param None
   * @retval None
@@ -381,6 +432,7 @@ static void MX_DMA_Init(void)
 
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
+  __HAL_RCC_DMA2_CLK_ENABLE();
 
   /* DMA interrupt init */
   /* DMA1_Stream3_IRQn interrupt configuration */
@@ -389,6 +441,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+  /* DMA2_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
 
 }
 
@@ -439,12 +494,23 @@ void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s) {
 }
 
 void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s) {
-	rxstate = 1;
+	if (hi2s->Instance == hi2s2.Instance) {		// microphone
+		rxstate = 1;
+	}
+	if (hi2s->Instance == hi2s1.Instance) {		// i2s input
+		rxstate = 3;
+	}
 }
 
 void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s) {
-	rxstate = 2;
+	if (hi2s->Instance == hi2s2.Instance) {		// microphone
+		rxstate = 2;
+	}
+	if (hi2s->Instance == hi2s1.Instance) {		// i2s input
+		rxstate = 4;
+	}
 }
+
 /* USER CODE END 4 */
 
 /**
