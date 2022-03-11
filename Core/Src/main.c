@@ -37,11 +37,7 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-#define PI 3.14159f
 
-//Sample rate and Output freq
-#define F_SAMPLE		48000.0f
-#define F_OUT				1500.0f
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -55,10 +51,7 @@ DMA_HandleTypeDef hdma_spi2_rx;
 DMA_HandleTypeDef hdma_spi3_tx;
 
 /* USER CODE BEGIN PV */
-float mySinVal;
-float sample_dt;
-uint16_t sample_N;
-int16_t dataI2S[100];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -106,8 +99,7 @@ uint16_t FifoRead() {
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	//sample_dt = F_OUT/F_SAMPLE;
-	//sample_N = F_SAMPLE/F_OUT;
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
